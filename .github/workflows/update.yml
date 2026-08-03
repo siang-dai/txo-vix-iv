@@ -1,10 +1,11 @@
-name: Update latest TXO term structure
+name: Update daily TXO analytics
 
 on:
   workflow_dispatch:
   schedule:
-    # 11:27 UTC = 19:27 Asia/Taipei. Weekdays only.
-    - cron: "27 11 * * 1-5"
+    # 每週一至週五 21:30，直接使用台灣時區。
+    - cron: "30 21 * * 1-5"
+      timezone: "Asia/Taipei"
 
 permissions:
   contents: write
@@ -16,7 +17,10 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
+    env:
+      TZ: Asia/Taipei
+      RISK_FREE_RATE: "0.01"
 
     steps:
       - name: Check out repository
@@ -28,25 +32,28 @@ jobs:
           python-version: "3.12"
           cache: pip
 
+      - name: Show Taiwan time
+        run: |
+          echo "Runner time in Asia/Taipei:"
+          date '+%Y-%m-%d %H:%M:%S %Z'
+
       - name: Install dependencies
         run: python -m pip install --upgrade pip && pip install -r requirements.txt
 
       - name: Run tests
-        run: pytest -q
+        run: python -m pytest -q
 
-      - name: Fetch latest data and draw chart
-        env:
-          RISK_FREE_RATE: "0.01"
+      - name: Fetch latest data and draw all charts
         run: python src/update_latest.py
 
       - name: Commit changed data and output
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/vix_term_structure_history.csv output/latest_term_structure.png output/latest_term_structure.svg output/latest.json
+          git add data output
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "data: update TXO term structure"
+            git commit -m "data: update TXO VIX and IV charts"
             git push
           fi

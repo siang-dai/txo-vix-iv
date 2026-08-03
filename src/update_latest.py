@@ -1,15 +1,15 @@
-"""Fetch the latest available TXO data, update history, and draw a static chart."""
+"""Fetch latest TXO data and publish VIX-style plus TX/MTX IV charts."""
 
 from __future__ import annotations
 
 import json
 import os
-from datetime import timedelta, timezone
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
 
+from txo_iv import update_iv_outputs
 from txo_vix import find_latest_available_term_structure
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -75,14 +75,18 @@ def draw_chart(latest: pd.DataFrame, as_of_date: str) -> None:
 def write_metadata(latest: pd.DataFrame, as_of_date: str) -> None:
     metadata = {
         "as_of_date": as_of_date,
-        "generated_at_utc": pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%d %H:%M:%S"),
+        "generated_at_taipei": pd.Timestamp.now(tz="Asia/Taipei").isoformat(timespec="seconds"),
+        "timezone": "Asia/Taipei",
         "number_of_expirations": int(len(latest)),
         "minimum_dte": float(latest["Days_to_Exp"].min()),
         "maximum_dte": float(latest["Days_to_Exp"].max()),
         "risk_free_rate": float(os.getenv("RISK_FREE_RATE", "0.01")),
         "official_index": False,
     }
-    JSON_PATH.write_text(json.dumps(metadata, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    JSON_PATH.write_text(
+        json.dumps(metadata, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
 
 
 def main() -> None:
@@ -92,11 +96,21 @@ def main() -> None:
         risk_free_rate=risk_free_rate,
     )
     as_of_text = as_of.strftime("%Y-%m-%d")
+
     update_history(latest)
     draw_chart(latest, as_of_text)
     write_metadata(latest, as_of_text)
+
+    iv_summary = update_iv_outputs(
+        trade_date=as_of,
+        output_dir=OUTPUT_DIR,
+        data_dir=DATA_DIR,
+        risk_free_rate=risk_free_rate,
+    )
+
     print(latest.to_string(index=False))
-    print(f"Updated chart for {as_of_text}: {PNG_PATH}")
+    print(f"Updated VIX-style chart for {as_of_text}: {PNG_PATH}")
+    print(f"Updated IV calibration outputs: {iv_summary}")
 
 
 if __name__ == "__main__":
