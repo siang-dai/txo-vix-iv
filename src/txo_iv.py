@@ -421,7 +421,7 @@ def draw_product_chart(
     label = PRODUCT_LABELS[product]
     date_text = pd.Timestamp(trade_date).strftime("%Y-%m-%d")
     figure.suptitle(
-        f"TXO OTM Black-76 IV Calibration with Same-Expiry {label}\nDate: {date_text}",
+        f"TXO OTM IV Curve with Same-Expiry {label}\nDate: {date_text}",
         fontsize=16,
     )
 
