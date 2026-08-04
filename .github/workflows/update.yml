@@ -3,16 +3,15 @@ name: Update daily TXO analytics
 on:
   workflow_dispatch:
   schedule:
-    # 每週一至週五 21:30，直接使用台灣時區。
-    - cron: "30 21 * * 1-5"
+    - cron: "17 * * * 1-5"
       timezone: "Asia/Taipei"
+
+concurrency:
+  group: txo-hourly-update
+  cancel-in-progress: true
 
 permissions:
   contents: write
-
-concurrency:
-  group: txo-daily-update
-  cancel-in-progress: false
 
 jobs:
   update:
