@@ -3,8 +3,7 @@ name: Update daily TXO analytics
 on:
   workflow_dispatch:
   schedule:
-    - cron: "17 * * * 1-5"
-      timezone: "Asia/Taipei"
+    - cron: "17 * * * *"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
