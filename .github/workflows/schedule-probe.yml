@@ -1,0 +1,22 @@
+name: Schedule probe
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/5 * * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Show trigger and time
+        run: |
+          echo "Event: ${{ github.event_name }}"
+          echo "UTC:"
+          date -u '+%Y-%m-%d %H:%M:%S UTC'
+          echo "Taipei:"
+          TZ=Asia/Taipei date '+%Y-%m-%d %H:%M:%S %Z'
