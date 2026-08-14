@@ -1,6 +1,6 @@
 {
   "as_of_date": "2026-08-13",
-  "generated_at_taipei": "2026-08-14T06:26:30+08:00",
+  "generated_at_taipei": "2026-08-14T13:20:12+08:00",
   "timezone": "Asia/Taipei",
   "method": "Black-76 IV inversion using exact same-expiry futures",
   "option_price_source": "settlement",
