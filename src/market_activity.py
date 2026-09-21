@@ -232,12 +232,17 @@ def generate_front_vix_taiex_chart(
             "Not enough overlapping TAIEX/VIX observations to draw chart."
         )
 
-    fig, ax_index = plt.subplots(figsize=(9.5, 5.2))
-    ax_vix = ax_index.twinx()
+    fig, (ax_index, ax_vix) = plt.subplots(
+        2,
+        1,
+        figsize=(10.5, 6.6),
+        sharex=True,
+    )
 
     colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
-    line_index = ax_index.plot(
+    # 上圖：TAIEX
+    ax_index.plot(
         plot_data["Date"],
         plot_data["TAIEX_Close"],
         marker="o",
@@ -247,7 +252,13 @@ def generate_front_vix_taiex_chart(
         label="TAIEX Close",
     )
 
-    line_vix = ax_vix.plot(
+    ax_index.set_ylabel("TAIEX Close")
+    ax_index.set_title("TAIEX vs Front-expiry VIX-style IV\nLast 30 Calendar Days")
+    ax_index.grid(axis="y", alpha=0.2)
+    ax_index.legend(loc="upper left", frameon=False)
+
+    # 下圖：Front-expiry VIX
+    ax_vix.plot(
         plot_data["Date"],
         plot_data["Front_VIX"],
         marker="s",
@@ -257,29 +268,15 @@ def generate_front_vix_taiex_chart(
         label="Front-expiry VIX-style IV",
     )
 
-    ax_index.set_ylabel("TAIEX Close")
     ax_vix.set_ylabel("VIX-style IV (%)")
-    ax_index.set_xlabel("Trading Date")
+    ax_vix.set_xlabel("Trading Date")
+    ax_vix.grid(axis="y", alpha=0.2)
+    ax_vix.legend(loc="upper left", frameon=False)
 
-    ax_index.grid(axis="y", alpha=0.2)
-    ax_index.xaxis.set_major_locator(mdates.AutoDateLocator())
-    ax_index.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
-    ax_index.tick_params(axis="x", rotation=45)
-
-    ax_index.set_title(
-        "TAIEX vs Front-expiry VIX-style IV\n"
-        "Last 30 Calendar Days"
-    )
-
-    lines = line_index + line_vix
-    labels = [line.get_label() for line in lines]
-
-    ax_index.legend(
-        lines,
-        labels,
-        loc="upper left",
-        frameon=False,
-    )
+    # 共用 x 軸格式
+    ax_vix.xaxis.set_major_locator(mdates.AutoDateLocator())
+    ax_vix.xaxis.set_major_formatter(mdates.DateFormatter("%m-%d"))
+    ax_vix.tick_params(axis="x", rotation=45)
 
     fig.tight_layout()
 
