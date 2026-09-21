@@ -232,7 +232,7 @@ def generate_front_vix_taiex_chart(
             "Not enough overlapping TAIEX/VIX observations to draw chart."
         )
 
-    fig, ax_index = plt.subplots(figsize=(13.5, 5.6))
+    fig, ax_index = plt.subplots(figsize=(10.5, 5.6))
     ax_vix = ax_index.twinx()
 
     colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
