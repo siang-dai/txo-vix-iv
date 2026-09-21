@@ -11,6 +11,7 @@ import pandas as pd
 
 from txo_iv import update_iv_outputs
 from txo_vix import find_latest_available_term_structure
+from market_activity import generate_front_vix_taiex_chart
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
@@ -39,6 +40,18 @@ def update_history(latest: pd.DataFrame) -> pd.DataFrame:
     ).sort_values(["Date", "Days_to_Exp"])
     combined.to_csv(HISTORY_PATH, index=False)
     return combined
+
+try:
+    generate_front_vix_taiex_chart(
+        history_path=HISTORY_PATH,
+        output_path=OUTPUT_DIR / "latest_front_vix_vs_taiex.png",
+        window_days=30,
+    )
+except Exception as exc:
+    print(
+        "WARNING: could not generate TAIEX/front-expiry VIX chart: "
+        f"{exc}"
+    )
 
 
 def draw_chart(latest: pd.DataFrame, as_of_date: str) -> None:
