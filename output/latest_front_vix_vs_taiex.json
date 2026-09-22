@@ -1,0 +1,138 @@
+{
+  "as_of_date": "2026-09-18",
+  "window_days": 30,
+  "data": [
+    {
+      "Date": "2026-08-20",
+      "Contract": "202608F3",
+      "TAIEX_Close": 44933.74,
+      "Front_VIX": 31.323
+    },
+    {
+      "Date": "2026-08-21",
+      "Contract": "202608W4",
+      "TAIEX_Close": 45224.29,
+      "Front_VIX": 24.7609
+    },
+    {
+      "Date": "2026-08-24",
+      "Contract": "202608W4",
+      "TAIEX_Close": 44762.32,
+      "Front_VIX": 28.4387
+    },
+    {
+      "Date": "2026-08-25",
+      "Contract": "202608W4",
+      "TAIEX_Close": 45169.46,
+      "Front_VIX": 27.0494
+    },
+    {
+      "Date": "2026-08-26",
+      "Contract": "202608F4",
+      "TAIEX_Close": 45832.62,
+      "Front_VIX": 31.3744
+    },
+    {
+      "Date": "2026-08-27",
+      "Contract": "202608F4",
+      "TAIEX_Close": 45975.22,
+      "Front_VIX": 27.9908
+    },
+    {
+      "Date": "2026-08-28",
+      "Contract": "202609W1",
+      "TAIEX_Close": 46331.45,
+      "Front_VIX": 21.3795
+    },
+    {
+      "Date": "2026-08-31",
+      "Contract": "202609W1",
+      "TAIEX_Close": 46128.47,
+      "Front_VIX": 25.2944
+    },
+    {
+      "Date": "2026-09-01",
+      "Contract": "202609W1",
+      "TAIEX_Close": 46948.72,
+      "Front_VIX": 23.8351
+    },
+    {
+      "Date": "2026-09-02",
+      "Contract": "202609F1",
+      "TAIEX_Close": 46164.72,
+      "Front_VIX": 28.5739
+    },
+    {
+      "Date": "2026-09-03",
+      "Contract": "202609F1",
+      "TAIEX_Close": 45857.66,
+      "Front_VIX": 27.7547
+    },
+    {
+      "Date": "2026-09-04",
+      "Contract": "202609W2",
+      "TAIEX_Close": 46551.13,
+      "Front_VIX": 20.044
+    },
+    {
+      "Date": "2026-09-07",
+      "Contract": "202609W2",
+      "TAIEX_Close": 47326.27,
+      "Front_VIX": 32.9624
+    },
+    {
+      "Date": "2026-09-08",
+      "Contract": "202609W2",
+      "TAIEX_Close": 47105.78,
+      "Front_VIX": 24.7298
+    },
+    {
+      "Date": "2026-09-09",
+      "Contract": "202609F2",
+      "TAIEX_Close": 47183.36,
+      "Front_VIX": 25.9215
+    },
+    {
+      "Date": "2026-09-10",
+      "Contract": "202609F2",
+      "TAIEX_Close": 46940.49,
+      "Front_VIX": 25.7979
+    },
+    {
+      "Date": "2026-09-11",
+      "Contract": "202609  ",
+      "TAIEX_Close": 46184.85,
+      "Front_VIX": 29.9331
+    },
+    {
+      "Date": "2026-09-14",
+      "Contract": "202609  ",
+      "TAIEX_Close": 45862.52,
+      "Front_VIX": 27.8798
+    },
+    {
+      "Date": "2026-09-15",
+      "Contract": "202609  ",
+      "TAIEX_Close": 45511.49,
+      "Front_VIX": 24.6179
+    },
+    {
+      "Date": "2026-09-16",
+      "Contract": "202609F3",
+      "TAIEX_Close": 45848.9,
+      "Front_VIX": 31.815
+    },
+    {
+      "Date": "2026-09-17",
+      "Contract": "202609F3",
+      "TAIEX_Close": 46288.0,
+      "Front_VIX": 24.7934
+    },
+    {
+      "Date": "2026-09-18",
+      "Contract": "202609W4",
+      "TAIEX_Close": 47180.75,
+      "Front_VIX": 17.2983
+    }
+  ]
+}

@@ -6,6 +6,7 @@ import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import pandas as pd
 import requests
+import json
 
 
 TWSE_TAIEX_URL = "https://www.twse.com.tw/indicesReport/MI_5MINS_HIST"
@@ -287,5 +288,40 @@ def generate_front_vix_taiex_chart(
         bbox_inches="tight",
     )
     plt.close(fig)
+
+    # ------------------------------------------------------------
+    # Small JSON payload for the interactive website chart
+    # ------------------------------------------------------------
+
+    json_path = output_path.with_suffix(".json")
+
+    interactive_data = plot_data[
+        [
+            "Date",
+            "Contract",
+            "TAIEX_Close",
+            "Front_VIX",
+        ]
+    ].copy()
+
+    interactive_data["Date"] = (
+        interactive_data["Date"]
+        .dt.strftime("%Y-%m-%d")
+    )
+
+    payload = {
+        "as_of_date": interactive_data["Date"].iloc[-1],
+        "window_days": window_days,
+        "data": interactive_data.to_dict(orient="records"),
+    }
+
+    json_path.write_text(
+        json.dumps(
+            payload,
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
 
     return data
