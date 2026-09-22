@@ -1,10 +1,6 @@
 {
   "as_of_date": "2026-09-22",
-<<<<<<< HEAD
   "generated_at_taipei": "2026-09-22T14:53:34+08:00",
-=======
-  "generated_at_taipei": "2026-09-22T17:49:50+08:00",
->>>>>>> ee503e9 (u)
   "timezone": "Asia/Taipei",
   "number_of_expirations": 9,
   "minimum_dte": 1.0,
