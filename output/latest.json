@@ -1,10 +1,10 @@
 {
-  "as_of_date": "2026-09-30",
-  "generated_at_taipei": "2026-10-01T14:05:15+08:00",
+  "as_of_date": "2026-10-01",
+  "generated_at_taipei": "2026-10-01T16:46:47+08:00",
   "timezone": "Asia/Taipei",
   "number_of_expirations": 9,
-  "minimum_dte": 2.0,
-  "maximum_dte": 259.0,
+  "minimum_dte": 1.0,
+  "maximum_dte": 258.0,
   "risk_free_rate": 0.01,
   "official_index": false
 }
