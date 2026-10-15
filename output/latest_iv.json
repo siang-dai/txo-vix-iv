@@ -1,6 +1,6 @@
 {
-  "as_of_date": "2026-10-14",
-  "generated_at_taipei": "2026-10-15T09:32:46+08:00",
+  "as_of_date": "2026-10-15",
+  "generated_at_taipei": "2026-10-15T15:32:09+08:00",
   "timezone": "Asia/Taipei",
   "method": "Black-76 IV inversion using exact same-expiry futures",
   "option_price_source": "settlement",
@@ -13,7 +13,7 @@
     },
     "MTX": {
       "matched_expirations": 4,
-      "plotted_points": 855,
+      "plotted_points": 861,
       "chart": "latest_mtx_iv_calibration.png",
       "data": "latest_mtx_iv_points.csv"
     }
