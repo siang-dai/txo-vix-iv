@@ -1,19 +1,19 @@
 {
-  "as_of_date": "2026-10-15",
-  "generated_at_taipei": "2026-10-16T09:26:56+08:00",
+  "as_of_date": "2026-10-16",
+  "generated_at_taipei": "2026-10-16T15:17:26+08:00",
   "timezone": "Asia/Taipei",
   "method": "Black-76 IV inversion using exact same-expiry futures",
   "option_price_source": "settlement",
   "products": {
     "TX": {
       "matched_expirations": 4,
-      "plotted_points": 869,
+      "plotted_points": 882,
       "chart": "latest_tx_iv_calibration.png",
       "data": "latest_tx_iv_points.csv"
     },
     "MTX": {
       "matched_expirations": 4,
-      "plotted_points": 861,
+      "plotted_points": 900,
       "chart": "latest_mtx_iv_calibration.png",
       "data": "latest_mtx_iv_points.csv"
     }
