@@ -16,7 +16,6 @@ import re
 from pathlib import Path
 from typing import Iterable
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import requests
@@ -407,103 +406,68 @@ def calibrate_product(
     return pd.concat(results, ignore_index=True)
 
 
-def draw_product_chart(
-    calibrated: pd.DataFrame,
+def build_iv_payload(
+    calibrated_products: dict[str, pd.DataFrame],
     trade_date: pd.Timestamp,
-    product: str,
-    output_path: Path,
-) -> None:
-    """Save one 2x2 calibration chart for TX or MTX."""
+    risk_free_rate: float = RISK_FREE_RATE,
+    generated_at: str | None = None,
+) -> dict[str, object]:
+    """Serialize only the original eligible scatter points, without smoothing.
 
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    figure, axes = plt.subplots(2, 2, figsize=(16, 11))
-    axes = axes.flatten()
-    label = PRODUCT_LABELS[product]
-    date_text = pd.Timestamp(trade_date).strftime("%Y-%m-%d")
-    figure.suptitle(
-        f"TXO OTM IV Curve with Same-Expiry {label}\nDate: {date_text}",
-        fontsize=16,
-    )
-
-    if calibrated.empty:
-        for axis in axes:
-            axis.axis("off")
-        axes[0].axis("on")
-        axes[0].text(
-            0.5,
-            0.5,
-            f"No TXO expiration had an exact same-day match with {product} futures.",
-            ha="center",
-            va="center",
-            transform=axes[0].transAxes,
-            fontsize=13,
-        )
-        axes[0].set_xticks([])
-        axes[0].set_yticks([])
-    else:
-        expirations = (
-            calibrated[["Contract", "Expiry"]]
-            .drop_duplicates()
-            .sort_values(["Expiry", "Contract"])
-        )
-        for index, item in enumerate(expirations.itertuples(index=False)):
-            axis = axes[index]
-            chain = calibrated[calibrated["Contract"].eq(item.Contract)].copy()
-            plot_data = chain[chain["Plot_Eligible"]].sort_values("Strike")
-            puts = plot_data[plot_data["Type"].eq("P")]
-            calls = plot_data[plot_data["Type"].eq("C")]
-            forward = float(chain["Forward"].iloc[0])
-            futures_contract = str(chain["Futures_Contract"].iloc[0])
-
-            if not puts.empty:
-                axis.scatter(
-                    puts["Strike"],
-                    puts["IV"],
-                    s=22,
-                    marker="o",
-                    alpha=0.85,
-                    label="OTM Put IV",
-                )
-            if not calls.empty:
-                axis.scatter(
-                    calls["Strike"],
-                    calls["IV"],
-                    s=22,
-                    marker="s",
-                    alpha=0.85,
-                    label="OTM Call IV",
-                )
-
-            axis.axvline(
-                forward,
-                linestyle="--",
-                linewidth=1.5,
-                label=f"{product} {futures_contract} | F={forward:.1f}",
-            )
-            axis.set_title(
-                f"TXO {item.Contract} → {product} {futures_contract}\n"
-                f"Expiry {pd.Timestamp(item.Expiry).date()} | "
-                f"DTE {int(chain['Days_To_Expiry'].iloc[0])} | "
-                f"points {len(plot_data)}"
-            )
-            axis.set_xlabel("Strike Price")
-            axis.set_ylabel("Implied Volatility")
-            axis.grid(True, linestyle=":", alpha=0.6)
-            axis.legend(fontsize=8)
-
-        for index in range(len(expirations), 4):
-            axes[index].axis("off")
-
-    figure.text(
-        0.5,
-        0.015,
-        "Settlement prices only; exact-expiry futures only; no IV smoothing or price adjustment.",
-        ha="center",
-        fontsize=9,
-    )
-    figure.tight_layout(rect=(0, 0.04, 1, 0.92))
-    figure.savefig(output_path, dpi=170, bbox_inches="tight")
-    plt.close(figure)
+    Row arrays keep the public payload small. IV is converted from a decimal to
+    percentage points for display; full-precision calculations remain in CSV.
+    """
+    trade_date = pd.Timestamp(trade_date).normalize()
+    products = {}
+    for product in PRODUCT_LABELS:
+        calibrated = calibrated_products[product]
+        curves = []
+        if not calibrated.empty:
+            if not pd.to_datetime(calibrated["Date"]).dt.normalize().eq(trade_date).all():
+                raise ValueError("IV observations must match the publication date")
+            if not calibrated["Futures_Product"].eq(product).all():
+                raise ValueError("IV observations must match the futures product")
+            expirations = (calibrated[["Contract", "Expiry"]].drop_duplicates()
+                           .sort_values(["Expiry", "Contract"]))
+            for item in expirations.itertuples(index=False):
+                chain = calibrated[calibrated["Contract"].eq(item.Contract)]
+                eligible = chain.loc[chain["Plot_Eligible"]].sort_values("Strike")
+                forward = float(chain["Forward"].iloc[0])
+                values = eligible[["Strike", "IV", "Price"]].to_numpy(dtype=float)
+                if (not np.isfinite(forward) or forward <= 0
+                        or not np.isfinite(values).all() or (values <= 0).any()):
+                    raise ValueError("Eligible IV points must be finite and positive")
+                if not eligible["Type"].isin(["P", "C"]).all():
+                    raise ValueError("Unknown option type in IV points")
+                curve = {
+                    "option_contract": str(item.Contract),
+                    "expiry": pd.Timestamp(item.Expiry).strftime("%Y-%m-%d"),
+                    "days_to_expiry": int(chain["Days_To_Expiry"].iloc[0]),
+                    "futures_contract": str(chain["Futures_Contract"].iloc[0]),
+                    "forward": round(forward, 4),
+                }
+                for kind, key in (("P", "puts"), ("C", "calls")):
+                    points = eligible.loc[eligible["Type"].eq(kind), ["Strike", "IV", "Price"]]
+                    curve[key] = [[round(float(k), 4), round(float(iv) * 100, 6), round(float(price), 6)]
+                                  for k, iv, price in points.itertuples(index=False, name=None)]
+                curves.append(curve)
+        products[product] = {
+            "matched_expirations": len(curves),
+            "plotted_points": sum(len(c["puts"]) + len(c["calls"]) for c in curves),
+            "data": f"latest_{product.lower()}_iv_points.csv",
+            "curves": curves,
+        }
+    return {
+        "schema": 1,
+        "as_of_date": trade_date.strftime("%Y-%m-%d"),
+        "generated_at_taipei": generated_at or pd.Timestamp.now(tz="Asia/Taipei").isoformat(timespec="seconds"),
+        "timezone": "Asia/Taipei",
+        "method": "Black-76 IV inversion using exact same-expiry futures",
+        "option_price_source": "settlement" if not USE_OPTION_MID else "mid_then_settlement",
+        "risk_free_rate": risk_free_rate,
+        "point_columns": ["strike", "iv_pct", "option_price"],
+        "products": products,
+    }
 
 
 def update_iv_outputs(
@@ -512,8 +476,7 @@ def update_iv_outputs(
     data_dir: Path,
     risk_free_rate: float = RISK_FREE_RATE,
 ) -> dict[str, dict[str, object]]:
-    """Create latest TX and MTX IV data, charts, and Taipei-time metadata."""
-
+    """Publish compact TX/MTX IV chart data and full-precision research CSVs."""
     output_dir.mkdir(parents=True, exist_ok=True)
     data_dir.mkdir(parents=True, exist_ok=True)
     options = get_options(trade_date)
@@ -521,40 +484,15 @@ def update_iv_outputs(
     if options.empty or futures.empty:
         raise RuntimeError("Option or futures data is empty for the selected trading date")
 
-    summary: dict[str, dict[str, object]] = {}
-    for product, filename in {
-        "TX": "latest_tx_iv_calibration.png",
-        "MTX": "latest_mtx_iv_calibration.png",
-    }.items():
-        calibrated = calibrate_product(
-            options,
-            futures,
-            trade_date,
-            product,
-            risk_free_rate=risk_free_rate,
-        )
-        draw_product_chart(calibrated, trade_date, product, output_dir / filename)
-
-        csv_path = data_dir / f"latest_{product.lower()}_iv_points.csv"
-        calibrated.to_csv(csv_path, index=False, encoding="utf-8-sig")
-        eligible = calibrated[calibrated.get("Plot_Eligible", False)].copy() if not calibrated.empty else calibrated
-        summary[product] = {
-            "matched_expirations": int(calibrated["Contract"].nunique()) if not calibrated.empty else 0,
-            "plotted_points": int(len(eligible)),
-            "chart": filename,
-            "data": csv_path.name,
-        }
-
-    metadata = {
-        "as_of_date": pd.Timestamp(trade_date).strftime("%Y-%m-%d"),
-        "generated_at_taipei": pd.Timestamp.now(tz="Asia/Taipei").isoformat(timespec="seconds"),
-        "timezone": "Asia/Taipei",
-        "method": "Black-76 IV inversion using exact same-expiry futures",
-        "option_price_source": "settlement" if not USE_OPTION_MID else "mid_then_settlement",
-        "products": summary,
+    calibrated_products = {
+        product: calibrate_product(options, futures, trade_date, product, risk_free_rate=risk_free_rate)
+        for product in PRODUCT_LABELS
     }
-    (output_dir / "latest_iv.json").write_text(
-        json.dumps(metadata, indent=2, ensure_ascii=False) + "\n",
-        encoding="utf-8",
-    )
-    return summary
+    payload = build_iv_payload(calibrated_products, trade_date, risk_free_rate)
+    # Validate the whole publication before replacing the previous chart data.
+    encoded = json.dumps(payload, separators=(",", ":"), ensure_ascii=False, allow_nan=False) + "\n"
+    for product, calibrated in calibrated_products.items():
+        calibrated.to_csv(data_dir / f"latest_{product.lower()}_iv_points.csv", index=False, encoding="utf-8-sig")
+    (output_dir / "latest_iv.json").write_text(encoded, encoding="utf-8")
+    return {product: {key: value for key, value in details.items() if key != "curves"}
+            for product, details in payload["products"].items()}

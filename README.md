@@ -17,21 +17,18 @@ This project downloads Taiwan index option and futures data from the **Taiwan Fu
 
 ## Latest outputs
 
-The repository automatically generates three main charts:
-
-* TXO VIX-style term structure
-* TX-based TXO IV curves
-* MTX-based TXO IV curves
-
-The latest figures are stored in:
+The repository publishes the VIX term-structure chart and compact data for the
+interactive TX- and MTX-based IV curves on the [TXO Observatory](https://siang-dai.github.io/txo.html).
 
 ```text
 output/latest_term_structure.png
-output/latest_tx_iv_calibration.png
-output/latest_mtx_iv_calibration.png
+output/latest_iv.json
 ```
 
-Supporting metadata and IV observations are stored in `output/` and `data/`.
+`latest_iv.json` contains both products, up to four same-expiry contracts each,
+and only the eligible OTM scatter points. The browser reuses the page's Plotly
+library; it no longer downloads IV PNGs. The daily workflow updates the JSON
+alongside the existing full-precision CSV observations, without generating IV images.
 
 ## Repository structure
 
@@ -76,11 +73,9 @@ Main chart outputs:
 ```text
 output/latest_term_structure.png
 output/latest_term_structure.svg
-output/latest_tx_iv_calibration.png
-output/latest_mtx_iv_calibration.png
 ```
 
-Metadata:
+Metadata and interactive chart data:
 
 ```text
 output/latest.json
@@ -107,21 +102,22 @@ The latest figures can be embedded directly from this repository.
   alt="Latest TXO VIX-style term structure">
 ```
 
-### TX-based IV curves
+### Interactive TX / MTX IV curves
 
-```html
-<img
-  src="https://raw.githubusercontent.com/siang-dai/txo-vix-term-structure/main/output/latest_tx_iv_calibration.png"
-  alt="Latest TX-based TXO implied-volatility curves">
-```
+Fetch `https://raw.githubusercontent.com/siang-dai/txo-vix-iv/main/output/latest_iv.json`.
+Schema 1 includes `as_of_date`, `generated_at_taipei`, `option_price_source`,
+`risk_free_rate`, and `products.TX` / `products.MTX`.
+Each product has `curves`, `matched_expirations`, and `plotted_points`.
+Each curve includes the option and futures contract codes, expiry, days to expiry,
+matched futures price (`forward`), and separate `puts` / `calls` arrays.
+Every point is `[strike, iv_pct, option_price]`, as declared in `point_columns`.
 
-### MTX-based IV curves
-
-```html
-<img
-  src="https://raw.githubusercontent.com/siang-dai/txo-vix-term-structure/main/output/latest_mtx_iv_calibration.png"
-  alt="Latest MTX-based TXO implied-volatility curves">
-```
+`iv_pct` is the original decimal IV multiplied by 100, rounded to six decimal
+places for display. No interpolation or smoothing is introduced. Full-precision
+IVs remain in `data/latest_tx_iv_points.csv` and `data/latest_mtx_iv_points.csv`.
+Unmatched products have an empty `curves` list; matched expirations without
+eligible quotes have empty point lists. They must be displayed as unavailable,
+not as zero IV. Both products are validated before the prior JSON is replaced.
 
 ## Methodology notes
 
