@@ -1,5 +1,5 @@
 {
-  "as_of_date": "2026-10-27",
+  "as_of_date": "2026-10-28",
   "window_days": 30,
   "data": [
     {
@@ -109,6 +109,12 @@
       "Contract": "202610W4",
       "TAIEX_Close": 46096.23,
       "Front_VIX": 30.8961
+    },
+    {
+      "Date": "2026-10-28",
+      "Contract": "202610F5",
+      "TAIEX_Close": 47035.58,
+      "Front_VIX": 29.2078
     }
   ]
 }
