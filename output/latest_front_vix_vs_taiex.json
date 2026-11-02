@@ -1,19 +1,7 @@
 {
-  "as_of_date": "2026-10-30",
+  "as_of_date": "2026-11-02",
   "window_days": 30,
   "data": [
-    {
-      "Date": "2026-10-01",
-      "Contract": "202610F1",
-      "TAIEX_Close": 48353.49,
-      "Front_VIX": 21.9007
-    },
-    {
-      "Date": "2026-10-02",
-      "Contract": "202610W1",
-      "TAIEX_Close": 48475.74,
-      "Front_VIX": 16.045
-    },
     {
       "Date": "2026-10-05",
       "Contract": "202610W1",
@@ -115,6 +103,12 @@
       "Contract": "202611W1",
       "TAIEX_Close": 45211.83,
       "Front_VIX": 27.4892
+    },
+    {
+      "Date": "2026-11-02",
+      "Contract": "202611W1",
+      "TAIEX_Close": 44920.14,
+      "Front_VIX": 32.5194
     }
   ]
 }
