@@ -1,13 +1,7 @@
 {
-  "as_of_date": "2026-11-17",
+  "as_of_date": "2026-11-18",
   "window_days": 30,
   "data": [
-    {
-      "Date": "2026-10-19",
-      "Contract": "202610  ",
-      "TAIEX_Close": 46822.08,
-      "Front_VIX": 29.2808
-    },
     {
       "Date": "2026-10-20",
       "Contract": "202610  ",
@@ -121,6 +115,12 @@
       "Contract": "202611  ",
       "TAIEX_Close": 40092.11,
       "Front_VIX": 78.0885
+    },
+    {
+      "Date": "2026-11-18",
+      "Contract": "202611F3",
+      "TAIEX_Close": 40194.91,
+      "Front_VIX": 67.9014
     }
   ]
 }
