@@ -15,6 +15,8 @@ This project downloads Taiwan index option and futures data from the **Taiwan Fu
 
 > **Note:** The VIX measure in this repository is a VIX-style term-structure calculation and should not be interpreted as the official TAIWAN VIX published by TAIFEX.
 
+For each expiration, the VIX calculation excludes a call or put quote when its final best ask exceeds its final best bid by **more than 50 index points** and is **more than 10 times the bid**. Both thresholds are strict. For a zero bid, an ask above 50 therefore qualifies for exclusion. The calculation drops that observation before estimating the forward and summing over strikes. For other observations it uses the valid bid/ask midpoint, then settlement or closing price if the midpoint is unavailable. Volume totals use the exchange's reported trades.
+
 ## Latest outputs
 
 The repository publishes the VIX term-structure chart and compact data for the
@@ -65,6 +67,8 @@ python src/backfill.py \
   --end 2026-08-03 \
   --sleep 2
 ```
+
+Add `--overwrite` to recalculate dates already in the history after a methodology change. Each successfully processed session replaces all of its previous expirations. If the download fails or the exchange returns no data, the script preserves that date's history.
 
 ## Generated files
 

@@ -17,6 +17,7 @@ from txo_vix import (
     calculate_term_structure,
     get_taifex_options_data,
     preprocess_txo_data,
+    replace_trading_day,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -37,14 +38,6 @@ def load_history() -> pd.DataFrame:
     if HISTORY_PATH.exists():
         return pd.read_csv(HISTORY_PATH)
     return pd.DataFrame()
-
-
-def save_history(history: pd.DataFrame) -> None:
-    HISTORY_PATH.parent.mkdir(parents=True, exist_ok=True)
-    history = history.drop_duplicates(
-        subset=["Date", "Expiration_Month"], keep="last"
-    ).sort_values(["Date", "Days_to_Exp"])
-    history.to_csv(HISTORY_PATH, index=False)
 
 
 def main() -> None:
@@ -70,12 +63,10 @@ def main() -> None:
                     as_of=trading_date,
                     risk_free_rate=args.risk_free_rate,
                 )
-                if result.empty:
-                    print(f"NO RESULT {date_text}")
-                else:
-                    history = pd.concat([history, result], ignore_index=True)
-                    save_history(history)
-                    print(f"OK {date_text}: {len(result)} expirations")
+                history = replace_trading_day(history, date_text, result)
+                HISTORY_PATH.parent.mkdir(parents=True, exist_ok=True)
+                history.to_csv(HISTORY_PATH, index=False)
+                print(f"OK {date_text}: {len(result)} expirations")
         except (TaifexDownloadError, ValueError, KeyError) as exc:
             print(f"ERROR {date_text}: {exc}")
 

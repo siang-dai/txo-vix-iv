@@ -16,8 +16,11 @@ from option_volume import (
 )
 from txo_iv import update_iv_outputs
 from txo_vix import (
+    WIDE_ASK_MULTIPLE,
+    WIDE_SPREAD_POINTS,
     find_latest_available_term_structure,
     get_taifex_options_data,
+    replace_trading_day,
 )
 
 
@@ -104,33 +107,7 @@ def update_history(
             columns=latest.columns
         )
 
-    combined = pd.concat(
-        [
-            history,
-            latest,
-        ],
-        ignore_index=True,
-    )
-
-    combined = (
-        combined
-        .drop_duplicates(
-            subset=[
-                "Date",
-                "Expiration_Month",
-            ],
-            keep="last",
-        )
-        .sort_values(
-            [
-                "Date",
-                "Days_to_Exp",
-            ]
-        )
-        .reset_index(
-            drop=True
-        )
-    )
+    combined = replace_trading_day(history, latest["Date"].iloc[0], latest)
 
     combined.to_csv(
         HISTORY_PATH,
@@ -306,6 +283,8 @@ def write_metadata(
 
         "official_index":
             False,
+        "exclude_quote_when":
+            f"ask - bid > {WIDE_SPREAD_POINTS} points AND ask > {WIDE_ASK_MULTIPLE} * bid",
     }
 
     JSON_PATH.write_text(

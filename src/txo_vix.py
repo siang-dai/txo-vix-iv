@@ -21,6 +21,9 @@ import pandas as pd
 import requests
 
 TAIFEX_URL = "https://www.taifex.com.tw/cht/3/optDataDown"
+WIDE_SPREAD_POINTS = 50
+WIDE_ASK_MULTIPLE = 10
+TERM_COLUMNS = ["Date", "Expiration_Month", "Expiration_Date", "Days_to_Exp", "Forward", "K0", "VIX"]
 USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36"
@@ -209,7 +212,10 @@ def preprocess_txo_data(raw: pd.DataFrame) -> pd.DataFrame:
     bid = frame.get("Best_Bid", pd.Series(np.nan, index=frame.index))
     ask = frame.get("Best_Ask", pd.Series(np.nan, index=frame.index))
     valid_market = bid.notna() & ask.notna() & bid.ge(0) & ask.ge(bid)
+    wide_quote = valid_market & ((ask - bid) > WIDE_SPREAD_POINTS) & (ask > WIDE_ASK_MULTIPLE * bid)
     frame["Mid_Price"] = np.where(valid_market, (bid + ask) / 2.0, np.nan)
+    # Drop the entire observation before settlement/close can supply a price.
+    frame = frame.loc[~wide_quote].copy()
 
     settlement = frame.get("Settlement_Price", pd.Series(np.nan, index=frame.index))
     close = frame.get("Close", pd.Series(np.nan, index=frame.index))
@@ -240,9 +246,7 @@ def calculate_term_structure(
     """Calculate one VIX-style implied-volatility estimate per expiration."""
 
     if frame.empty:
-        return pd.DataFrame(
-            columns=["Date", "Expiration_Month", "Expiration_Date", "Days_to_Exp", "Forward", "K0", "VIX"]
-        )
+        return pd.DataFrame(columns=TERM_COLUMNS)
 
     valuation_date = pd.Timestamp(as_of or frame["Date"].dropna().max()).normalize()
     working = frame.copy()
@@ -321,7 +325,19 @@ def calculate_term_structure(
             }
         )
 
-    return pd.DataFrame.from_records(records).sort_values("Days_to_Exp").reset_index(drop=True)
+    return pd.DataFrame.from_records(records, columns=TERM_COLUMNS).sort_values("Days_to_Exp").reset_index(drop=True)
+
+
+def replace_trading_day(history: pd.DataFrame, date_text: str, result: pd.DataFrame) -> pd.DataFrame:
+    """Replace one complete session, including expirations that no longer qualify."""
+    if history.empty:
+        return result.copy()
+    other_days = history.loc[history["Date"] != date_text]
+    if result.empty:
+        return other_days.reset_index(drop=True)
+    return pd.concat([other_days, result], ignore_index=True).sort_values(
+        ["Date", "Days_to_Exp"], ignore_index=True
+    )
 
 
 def find_latest_available_term_structure(

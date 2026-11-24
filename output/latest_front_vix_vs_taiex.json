@@ -6,13 +6,13 @@
       "Date": "2026-10-27",
       "Contract": "202610W4",
       "TAIEX_Close": 46096.23,
-      "Front_VIX": 30.8961
+      "Front_VIX": 27.4986
     },
     {
       "Date": "2026-10-28",
       "Contract": "202610F5",
       "TAIEX_Close": 47035.58,
-      "Front_VIX": 29.2078
+      "Front_VIX": 28.3928
     },
     {
       "Date": "2026-10-29",
@@ -24,7 +24,7 @@
       "Date": "2026-10-30",
       "Contract": "202611W1",
       "TAIEX_Close": 45211.83,
-      "Front_VIX": 27.4892
+      "Front_VIX": 27.2037
     },
     {
       "Date": "2026-11-02",
@@ -42,19 +42,19 @@
       "Date": "2026-11-04",
       "Contract": "202611F1",
       "TAIEX_Close": 42948.91,
-      "Front_VIX": 45.1109
+      "Front_VIX": 45.0418
     },
     {
       "Date": "2026-11-05",
       "Contract": "202611F1",
       "TAIEX_Close": 41574.72,
-      "Front_VIX": 53.4051
+      "Front_VIX": 52.6655
     },
     {
       "Date": "2026-11-06",
       "Contract": "202611W2",
       "TAIEX_Close": 39701.64,
-      "Front_VIX": 51.4794
+      "Front_VIX": 49.5624
     },
     {
       "Date": "2026-11-09",
@@ -66,19 +66,19 @@
       "Date": "2026-11-10",
       "Contract": "202611W2",
       "TAIEX_Close": 42711.92,
-      "Front_VIX": 50.1409
+      "Front_VIX": 50.0664
     },
     {
       "Date": "2026-11-11",
       "Contract": "202611F2",
       "TAIEX_Close": 44257.15,
-      "Front_VIX": 44.4352
+      "Front_VIX": 43.147
     },
     {
       "Date": "2026-11-12",
       "Contract": "202611F2",
       "TAIEX_Close": 43091.87,
-      "Front_VIX": 50.8516
+      "Front_VIX": 50.6731
     },
     {
       "Date": "2026-11-13",
@@ -96,13 +96,13 @@
       "Date": "2026-11-17",
       "Contract": "202611  ",
       "TAIEX_Close": 40092.11,
-      "Front_VIX": 78.0885
+      "Front_VIX": 77.846
     },
     {
       "Date": "2026-11-18",
       "Contract": "202611F3",
       "TAIEX_Close": 40194.91,
-      "Front_VIX": 67.9014
+      "Front_VIX": 67.5417
     },
     {
       "Date": "2026-11-19",
@@ -114,19 +114,19 @@
       "Date": "2026-11-20",
       "Contract": "202611W4",
       "TAIEX_Close": 36033.29,
-      "Front_VIX": 57.7164
+      "Front_VIX": 58.0068
     },
     {
       "Date": "2026-11-23",
       "Contract": "202611W4",
       "TAIEX_Close": 36811.89,
-      "Front_VIX": 83.8679
+      "Front_VIX": 84.0838
     },
     {
       "Date": "2026-11-24",
       "Contract": "202611W4",
       "TAIEX_Close": 40122.35,
-      "Front_VIX": 85.511
+      "Front_VIX": 85.6769
     }
   ]
 }

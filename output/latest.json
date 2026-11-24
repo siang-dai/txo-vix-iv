@@ -1,10 +1,11 @@
 {
   "as_of_date": "2026-11-24",
-  "generated_at_taipei": "2026-11-24T16:24:39+08:00",
+  "generated_at_taipei": "2026-11-24T18:03:37+08:00",
   "timezone": "Asia/Taipei",
   "number_of_expirations": 9,
   "minimum_dte": 1.0,
   "maximum_dte": 204.0,
   "risk_free_rate": 0.01,
-  "official_index": false
+  "official_index": false,
+  "exclude_quote_when": "ask - bid > 50 points AND ask > 10 * bid"
 }
