@@ -88,6 +88,9 @@ def test_update_publishes_json_and_csv_without_png(monkeypatch, tmp_path):
     monkeypatch.setattr(iv, 'get_futures', lambda _: futures)
     summary = iv.update_iv_outputs(date, tmp_path / 'output', tmp_path / 'data')
     payload = json.loads((tmp_path / 'output/latest_iv.json').read_text())
+    month = tmp_path / 'data/iv_history/2026-08.json'
+    stored = json.loads(month.read_text())
+    assert stored['2026-08-03'] == {p: v['curves'] for p, v in payload['products'].items()}
     assert payload['products']['TX']['plotted_points'] == summary['TX']['plotted_points'] == 2
     assert len(list((tmp_path / 'data').glob('*.csv'))) == 2
     assert not list(tmp_path.rglob('*.png'))
@@ -98,3 +101,21 @@ def test_update_publishes_json_and_csv_without_png(monkeypatch, tmp_path):
     with pytest.raises(RuntimeError, match='data is empty'):
         iv.update_iv_outputs(date, tmp_path / 'output', tmp_path / 'data')
     assert (tmp_path / 'output/latest_iv.json').read_bytes() == original
+    assert json.loads(month.read_text()) == stored
+
+
+def test_archive_replaces_only_selected_day_and_keeps_two_nearest_usable_curves(tmp_path):
+    import json
+    from src.txo_iv import archive_iv_curves
+    def curve(day, puts):
+        return {"expiry": day, "option_contract": day, "puts": puts, "calls": []}
+    near, second, far = [curve(f"2026-08-{n}", [[20000, 20, 50]]) for n in (12, 19, 26)]
+    unavailable = curve("2026-08-05", [])
+    product = {"curves": [far, second, unavailable, near]}
+    payload = {"as_of_date": "2026-08-03", "products": {"TX": product, "MTX": product}}
+    archive_iv_curves(payload, tmp_path)
+    archive_iv_curves({**payload, "as_of_date": "2026-08-04"}, tmp_path)
+    archive_iv_curves({**payload, "products": {"TX": {"curves": [far]}, "MTX": product}}, tmp_path)
+    history = json.loads((tmp_path / "iv_history/2026-08.json").read_text())
+    assert history == {"2026-08-03": {"TX": [far], "MTX": [near, second]},
+                       "2026-08-04": {"TX": [near, second], "MTX": [near, second]}}

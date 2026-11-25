@@ -470,6 +470,26 @@ def build_iv_payload(
     }
 
 
+def archive_iv_curves(payload: dict, data_dir: Path) -> None:
+    """Replace one trading day in its month, keeping the nearest two usable curves per product."""
+    day = payload["as_of_date"]
+    path = data_dir / "iv_history" / f"{day[:7]}.json"
+    history = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    snapshot = {}
+    for product in PRODUCT_LABELS:
+        usable = [curve for curve in payload["products"][product]["curves"] if curve["puts"] or curve["calls"]]
+        snapshot[product] = sorted(usable, key=lambda c: (c["expiry"], c["option_contract"]))[:2]
+    if history.get(day) == snapshot:
+        return
+    history[day] = snapshot
+    path.parent.mkdir(parents=True, exist_ok=True)
+    days = [f'{json.dumps(date)}:{json.dumps(history[date], separators=(",", ":"), allow_nan=False)}'
+            for date in sorted(history)]
+    temporary = path.with_suffix(".tmp")
+    temporary.write_text("{\n" + ",\n".join(days) + "\n}\n", encoding="utf-8")
+    temporary.replace(path)
+
+
 def update_iv_outputs(
     trade_date: pd.Timestamp,
     output_dir: Path,
@@ -491,6 +511,7 @@ def update_iv_outputs(
     payload = build_iv_payload(calibrated_products, trade_date, risk_free_rate)
     # Validate the whole publication before replacing the previous chart data.
     encoded = json.dumps(payload, separators=(",", ":"), ensure_ascii=False, allow_nan=False) + "\n"
+    archive_iv_curves(payload, data_dir)
     for product, calibrated in calibrated_products.items():
         calibrated.to_csv(data_dir / f"latest_{product.lower()}_iv_points.csv", index=False, encoding="utf-8-sig")
     (output_dir / "latest_iv.json").write_text(encoded, encoding="utf-8")

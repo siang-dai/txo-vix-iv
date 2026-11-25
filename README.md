@@ -36,6 +36,11 @@ and only the eligible OTM scatter points. The browser reuses the page's Plotly
 library; it no longer downloads IV PNGs. The daily workflow updates the JSON
 alongside the existing full-precision CSV observations, without generating IV images.
 
+The daily update also saves the nearest two eligible expirations per product in
+`data/iv_history/YYYY-MM.json`, keyed by trading date. The observatory loads a
+month on demand for historical views. Its liquidity overlay uses that day's
+nearest TX curve and clips the original strike observations to the selected volume bins.
+
 ## Repository structure
 
 ```text
