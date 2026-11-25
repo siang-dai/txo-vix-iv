@@ -21,6 +21,8 @@ For each expiration, the VIX calculation excludes a call or put quote when its f
 
 The observatory reads `data/option_volume_history.csv` for grouped call and put volume by expiration and the daily market-wide put/call ratios. Volume includes both sessions and expiry-day trades. Closing open interest uses regular-session observations for contracts still open after settlement. Each ratio is 100 × total puts / total calls for its measure. Historical totals are checked against the [TAIFEX Put/Call Ratio table](https://www.taifex.com.tw/cht/3/pcRatio). Daily updates and the historical backfill use the same aggregation.
 
+Market history keeps 365 calendar days of TAIEX candles, front-expiry VIX and daily call/put totals in `output/latest_front_vix_vs_taiex.json`. Daily updates retain the backfilled observations that predate the detailed snapshot archive.
+
 For each expiration, `First_Strike_Bin` is the lower bound of the first 500-point strike interval. `Call_Bins_500` and `Put_Bins_500` contain space-separated contract counts in successive intervals, including zeros. A strike of 40,500 belongs to the interval starting at 40,500. Each series sums to its side’s reported volume.
 
 `Call_Traded_Strikes` and `Put_Traded_Strikes` list the exact strikes with positive volume in either session for each side, in ascending order separated by spaces. A dash means that side had no trades. The liquidity chart uses these lists for its strike range and to identify traded points on its IV overlay.

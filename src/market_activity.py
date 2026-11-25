@@ -174,6 +174,8 @@ def generate_front_vix_taiex_chart(
     history_path: str | Path,
     output_path: str | Path,
     window_days: int = 30,
+    interactive_days: int | None = None,
+    volume_history_path: str | Path | None = None,
 ) -> pd.DataFrame:
     """
     Plot TAIEX close against the nearest-expiry VIX-style IV.
@@ -186,7 +188,8 @@ def generate_front_vix_taiex_chart(
     output_path = Path(output_path)
 
     history = pd.read_csv(history_path)
-    front = _get_front_vix(history, window_days=window_days)
+    days = interactive_days if interactive_days is not None else window_days
+    front = _get_front_vix(history, window_days=max(window_days, days))
     json_path = output_path.with_suffix(".json")
     previous = json.loads(json_path.read_text(encoding="utf-8")) if json_path.exists() else {}
     changes = previous.get("taiex_change_points", {})
@@ -233,9 +236,11 @@ def generate_front_vix_taiex_chart(
         .reset_index(drop=True)
     )
 
-    plot_data = data.dropna(
+    observations = data.dropna(
         subset=["TAIEX_Close", "Front_VIX"]
     ).copy()
+    plot_start = front["Date"].max() - pd.Timedelta(days=window_days - 1)
+    plot_data = observations.loc[observations["Date"] >= plot_start]
 
     if len(plot_data) < 2:
         raise RuntimeError(
@@ -302,7 +307,7 @@ def generate_front_vix_taiex_chart(
     # Small JSON payload for the interactive website chart
     # ------------------------------------------------------------
 
-    interactive_data = plot_data[
+    interactive_data = observations[
         [
             "Date",
             "Contract",
@@ -319,10 +324,24 @@ def generate_front_vix_taiex_chart(
         .dt.strftime("%Y-%m-%d")
     )
 
+    if volume_history_path is not None and Path(volume_history_path).exists():
+        fields = ["Call_Volume", "Put_Volume", "Call_OI", "Put_OI"]
+        volume = pd.read_csv(volume_history_path, usecols=["Date", *fields])
+        daily_counts = volume.groupby("Date")[fields].sum(min_count=1)
+        interactive_data = interactive_data.join(daily_counts, on="Date")
+
+    # Keep previously published daily observations beyond the static chart's window.
+    last_day = interactive_data["Date"].iloc[-1]
+    cutoff = (pd.Timestamp(last_day) - pd.Timedelta(days=days - 1)).date().isoformat()
+    market_days = {row["Date"]: row for row in previous.get("data", []) if cutoff <= row["Date"] <= last_day}
+    for row in interactive_data.to_dict(orient="records"):
+        if row["Date"] >= cutoff:
+            market_days.setdefault(row["Date"], {}).update({key: val for key, val in row.items() if pd.notna(val)})
+
     payload = {
-        "as_of_date": interactive_data["Date"].iloc[-1],
-        "window_days": window_days,
-        "data": interactive_data.to_dict(orient="records"),
+        "as_of_date": last_day,
+        "window_days": days,
+        "data": [market_days[day] for day in sorted(market_days)],
         "taiex_change_points": dict(sorted(changes.items())),
         "taiex_change_pct": dict(sorted(percent_changes.items())),
     }

@@ -431,6 +431,8 @@ def main() -> None:
                 / "latest_front_vix_vs_taiex.png",
 
             window_days=90,
+            interactive_days=365,
+            volume_history_path=OPTION_VOLUME_HISTORY_PATH,
         )
 
     except Exception as exc:

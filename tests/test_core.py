@@ -106,8 +106,9 @@ def test_snapshot_change_uses_prior_trading_close_and_keeps_earlier_dates(tmp_pa
     import json
     from src import market_activity
 
-    closes = pd.Series([100, 105, 103, 100, 200, 199, 199], index=pd.to_datetime([
-        "2026-07-31", "2026-08-03", "2026-08-04", "2026-08-05", "2026-10-30", "2026-11-02", "2026-11-03"]))
+    closes = pd.Series([100, 105, 103, 100, 105, 200, 199, 199], index=pd.to_datetime([
+        "2026-07-31", "2026-08-03", "2026-08-04", "2026-08-05", "2026-09-01", "2026-10-30",
+        "2026-11-02", "2026-11-03"]))
     def quotes(year, month, session):
         values = closes[(closes.index.year == year) & (closes.index.month == month)]
         return pd.DataFrame({key: values for key in ["TAIEX_Open", "TAIEX_High", "TAIEX_Low", "TAIEX_Close"]}).rename_axis("Date").reset_index()
@@ -123,3 +124,17 @@ def test_snapshot_change_uses_prior_trading_close_and_keeps_earlier_dates(tmp_pa
     assert result["taiex_change_points"] == dict(zip(dates, [5, -3, -1, 0]))
     assert result["taiex_change_pct"] == dict(zip(dates, [5, round(-300 / 103, 8), -0.5, 0]))
     assert [row["Date"] for row in result["data"]] == dates[-2:]
+
+    # An older published session can outlive the detailed term-structure input.
+    earlier = pd.DataFrame({"Date": [dates[0], dates[0]], "Call_Volume": [3, 4],
+                            "Put_Volume": [2, 1], "Call_OI": [8, 5], "Put_OI": [1, 3]})
+    volume = tmp_path / "volume.csv"
+    earlier.to_csv(volume, index=False)
+    for source_rows in (rows, rows.iloc[-2:]):
+        source_rows.to_csv(source, index=False)
+        market_activity.generate_front_vix_taiex_chart(source, output, window_days=3,
+                                                       interactive_days=365, volume_history_path=volume)
+    annual = json.loads(output.with_suffix(".json").read_text())
+    assert annual["window_days"] == 365
+    assert [r["Date"] for r in annual["data"]] == dates
+    assert annual["data"][0]["Call_Volume"] == 7
