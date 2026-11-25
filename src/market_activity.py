@@ -190,8 +190,9 @@ def generate_front_vix_taiex_chart(
     json_path = output_path.with_suffix(".json")
     previous = json.loads(json_path.read_text(encoding="utf-8")) if json_path.exists() else {}
     changes = previous.get("taiex_change_points", {})
+    percent_changes = previous.get("taiex_change_pct", {})
     snapshot_dates = set(history["Date"])
-    missing = snapshot_dates.difference(changes)
+    missing = snapshot_dates - (changes.keys() & percent_changes.keys())
     start = min(front["Date"].min(), pd.Timestamp(min(missing))) if missing else front["Date"].min()
 
     session = requests.Session()
@@ -218,9 +219,13 @@ def generate_front_vix_taiex_chart(
         if prior.empty:
             raise ValueError(f"Previous TAIEX close unavailable for {start.date()}")
         taiex = pd.concat([prior.tail(1), taiex], ignore_index=True)
-    daily_change = taiex.set_index("Date")["TAIEX_Close"].diff().round(2).dropna()
-    changes.update({day: points for day, points in zip(daily_change.index.strftime("%Y-%m-%d"), daily_change)
-                    if day in snapshot_dates})
+    close = taiex.set_index("Date")["TAIEX_Close"]
+    close.index = close.index.strftime("%Y-%m-%d")
+    prior_close = close.shift()
+    daily_change = (close - prior_close).round(2).dropna()
+    daily_change = daily_change[daily_change.index.isin(snapshot_dates)]
+    changes.update(daily_change.to_dict())
+    percent_changes.update((100 * daily_change / prior_close[prior_close > 0]).dropna().round(8).to_dict())
 
     data = (
         front.merge(taiex, on="Date", how="left")
@@ -319,6 +324,7 @@ def generate_front_vix_taiex_chart(
         "window_days": window_days,
         "data": interactive_data.to_dict(orient="records"),
         "taiex_change_points": dict(sorted(changes.items())),
+        "taiex_change_pct": dict(sorted(percent_changes.items())),
     }
 
     json_path.write_text(

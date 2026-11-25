@@ -97,6 +97,9 @@ def test_expiry_day_volume_and_post_settlement_open_interest():
     assert result[["First_Strike_Bin", "Call_Bins_500", "Put_Bins_500"]].values.tolist() == [
         [30000, "0", "7"], [30000, "10 0 0 0", "0 0 0 16"],
     ]
+    rows.loc[len(rows)] = ["TXO", "2026/08/19", "202609", "20260916", 30450, "賣權", "一般", 0, "3"]
+    strikes = calculate_expiration_volume(rows, "2026-08-19")[["Call_Traded_Strikes", "Put_Traded_Strikes"]]
+    assert strikes.values.tolist() == [["-", "30000"], ["30000 30450", "31500"]]
 
 
 def test_snapshot_change_uses_prior_trading_close_and_keeps_earlier_dates(tmp_path, monkeypatch):
@@ -118,4 +121,5 @@ def test_snapshot_change_uses_prior_trading_close_and_keeps_earlier_dates(tmp_pa
         market_activity.generate_front_vix_taiex_chart(source, output, window_days=3)
     result = json.loads(output.with_suffix(".json").read_text())
     assert result["taiex_change_points"] == dict(zip(dates, [5, -3, -1, 0]))
+    assert result["taiex_change_pct"] == dict(zip(dates, [5, round(-300 / 103, 8), -0.5, 0]))
     assert [row["Date"] for row in result["data"]] == dates[-2:]

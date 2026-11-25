@@ -23,6 +23,8 @@ The observatory reads `data/option_volume_history.csv` for grouped call and put 
 
 For each expiration, `First_Strike_Bin` is the lower bound of the first 500-point strike interval. `Call_Bins_500` and `Put_Bins_500` contain space-separated contract counts in successive intervals, including zeros. A strike of 40,500 belongs to the interval starting at 40,500. Each series sums to its side’s reported volume.
 
+`Call_Traded_Strikes` and `Put_Traded_Strikes` list the exact strikes with positive volume in either session for each side, in ascending order separated by spaces. A dash means that side had no trades. The liquidity chart uses these lists for its strike range and to identify traded points on its IV overlay.
+
 The repository publishes the VIX term-structure chart and compact data for the
 interactive TX- and MTX-based IV curves on the [TXO Observatory](https://siang-dai.github.io/txo.html).
 

@@ -34,6 +34,7 @@ def calculate_expiration_volume(raw_options: pd.DataFrame, trade_date) -> pd.Dat
     strike = pd.to_numeric(rows["履約價"].astype(str).str.replace(",", "", regex=False))
     if not strike.between(0, float("inf"), inclusive="neither").all():
         raise ValueError("Invalid strike price")
+    rows["Strike"] = strike
     rows["Strike_Bin"] = (strike // 500).astype("int64") * 500
 
     totals = rows.groupby(["Expiration_Month", "Expiration_Date", "Side"])[["Volume", "OI"]].sum()
@@ -43,6 +44,9 @@ def calculate_expiration_volume(raw_options: pd.DataFrame, trade_date) -> pd.Dat
     by_side.columns = [f"{side}_{measure}" for measure, side in by_side.columns]
     strike_volume = rows.groupby(["Expiration_Month", "Expiration_Date", "Strike_Bin", "Side"])["Volume"].sum()
     sides = strike_volume.unstack("Side", fill_value=0).reindex(columns=["Call", "Put"], fill_value=0)
+    # An exact strike may trade on just one side or only in the after-hours session.
+    traded = rows.loc[rows["Volume"] > 0].groupby(["Expiration_Month", "Expiration_Date", "Side"])["Strike"]
+    traded_strikes = traded.agg(lambda values: " ".join(format(k, ".15g") for k in sorted(values.unique())))
     bins = []
     for (expiry, expiry_date), group in sides.groupby(level=["Expiration_Month", "Expiration_Date"]):
         counts = group.droplevel(["Expiration_Month", "Expiration_Date"])
@@ -51,6 +55,8 @@ def calculate_expiration_volume(raw_options: pd.DataFrame, trade_date) -> pd.Dat
         bins.append({
             "Expiration_Month": expiry, "Expiration_Date": expiry_date, "First_Strike_Bin": first,
             "Call_Bins_500": " ".join(counts["Call"].astype(str)), "Put_Bins_500": " ".join(counts["Put"].astype(str)),
+            "Call_Traded_Strikes": traded_strikes.get((expiry, expiry_date, "Call"), "-"),
+            "Put_Traded_Strikes": traded_strikes.get((expiry, expiry_date, "Put"), "-"),
         })
     result = by_side.join(pd.DataFrame(bins).set_index(["Expiration_Month", "Expiration_Date"]))
     result = result.reset_index().sort_values(["Expiration_Date", "Expiration_Month"])
