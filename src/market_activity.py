@@ -9,6 +9,13 @@ import requests
 import json
 
 
+TAIEX_FIELDS = {
+    "日期": "Date",
+    "開盤指數": "TAIEX_Open",
+    "最高指數": "TAIEX_High",
+    "最低指數": "TAIEX_Low",
+    "收盤指數": "TAIEX_Close",
+}
 TWSE_TAIEX_URL = "https://www.twse.com.tw/indicesReport/MI_5MINS_HIST"
 
 
@@ -49,34 +56,18 @@ def _get_taiex_month(
     response.raise_for_status()
 
     payload = response.json()
-    rows = payload.get("data", [])
-
-    output: list[dict[str, object]] = []
-
-    for row in rows:
-        if len(row) < 5:
-            continue
-
-        date = _roc_date_to_timestamp(row[0])
-        close = pd.to_numeric(
-            str(row[4]).replace(",", ""),
-            errors="coerce",
-        )
-
-        if pd.isna(date) or pd.isna(close):
-            continue
-
-        output.append(
-            {
-                "Date": date,
-                "TAIEX_Close": float(close),
-            }
-        )
-
-    return pd.DataFrame(
-        output,
-        columns=["Date", "TAIEX_Close"],
-    )
+    if not payload.get("data"):
+        return pd.DataFrame(columns=TAIEX_FIELDS.values())
+    quotes = pd.DataFrame(payload["data"], columns=payload["fields"])[list(TAIEX_FIELDS)]
+    quotes = quotes.rename(columns=TAIEX_FIELDS)
+    quotes["Date"] = quotes["Date"].map(_roc_date_to_timestamp)
+    for key in ["TAIEX_Open", "TAIEX_High", "TAIEX_Low", "TAIEX_Close"]:
+        quotes[key] = pd.to_numeric(quotes[key].astype(str).str.replace(",", "", regex=False))
+    body = quotes[["TAIEX_Open", "TAIEX_Close"]]
+    if (quotes.isna().any().any() or (quotes["TAIEX_Low"] > body.min(axis=1)).any()
+            or (quotes["TAIEX_High"] < body.max(axis=1)).any()):
+        raise ValueError(f"Inconsistent TAIEX daily prices for {year}-{month:02d}")
+    return quotes
 
 
 def _get_taiex_history(
@@ -98,7 +89,7 @@ def _get_taiex_history(
     frames = [frame for frame in frames if not frame.empty]
 
     if not frames:
-        return pd.DataFrame(columns=["Date", "TAIEX_Close"])
+        return pd.DataFrame(columns=TAIEX_FIELDS.values())
 
     return (
         pd.concat(frames, ignore_index=True)
@@ -299,6 +290,9 @@ def generate_front_vix_taiex_chart(
         [
             "Date",
             "Contract",
+            "TAIEX_Open",
+            "TAIEX_High",
+            "TAIEX_Low",
             "TAIEX_Close",
             "Front_VIX",
         ]
