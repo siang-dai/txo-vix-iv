@@ -1,5 +1,6 @@
 import pandas as pd
 
+from src.option_volume import calculate_expiration_volume
 from src.txo_vix import (
     calculate_term_structure,
     infer_expiration_date,
@@ -78,3 +79,17 @@ def test_calculate_term_structure_returns_positive_value():
     result = calculate_term_structure(pd.DataFrame(rows), as_of="2026-07-01")
     assert len(result) == 1
     assert result.loc[0, "VIX"] > 0
+
+
+def test_expiry_day_volume_and_post_settlement_open_interest():
+    rows = pd.DataFrame({
+        "契約": ["TXO"] * 5, "交易日期": ["2026/08/19"] * 5,
+        "到期月份(週別)": ["202608", "202609", "202609", "202609", "202609"],
+        "契約到期日": ["20260819"] + ["20260916"] * 4,
+        "買賣權": ["賣權", "買權", "買權", "賣權", "賣權"],
+        "交易時段": ["一般", "一般", "盤後", "一般", "盤後"],
+        "成交量": [7, 8, 2, 11, 5], "未沖銷契約數": ["99", "40", "-", "20", "-"],
+    })
+    result = calculate_expiration_volume(rows, "2026-08-19")
+    counts = ["Call_Volume", "Put_Volume", "Volume", "Call_OI", "Put_OI"]
+    assert result[counts].values.tolist() == [[0, 7, 7, 0, 0], [10, 16, 26, 40, 20]]

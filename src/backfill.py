@@ -12,6 +12,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from option_volume import calculate_expiration_volume, update_volume_history
 from txo_vix import (
     TaifexDownloadError,
     calculate_term_structure,
@@ -22,6 +23,7 @@ from txo_vix import (
 
 ROOT = Path(__file__).resolve().parents[1]
 HISTORY_PATH = ROOT / "data" / "vix_term_structure_history.csv"
+VOLUME_PATH = ROOT / "data" / "option_volume_history.csv"
 
 
 def parse_args() -> argparse.Namespace:
@@ -44,11 +46,17 @@ def main() -> None:
     args = parse_args()
     dates = pd.date_range(args.start, args.end, freq="B")
     history = load_history()
-    completed_dates = set() if args.overwrite or history.empty else set(history["Date"].astype(str))
+    vix_dates = set(history["Date"]) if not history.empty else set()
+    volume = pd.read_csv(VOLUME_PATH) if VOLUME_PATH.exists() else pd.DataFrame()
+    fields = ["Call_Volume", "Put_Volume", "Call_OI", "Put_OI", "Expiration_Date"]
+    volume_dates = set()
+    if set(fields).issubset(volume):
+        complete = volume[fields].notna().all(axis=1).groupby(volume["Date"]).all()
+        volume_dates = set(complete.index[complete])
 
     for trading_date in dates:
         date_text = trading_date.strftime("%Y-%m-%d")
-        if date_text in completed_dates:
+        if not args.overwrite and date_text in vix_dates and date_text in volume_dates:
             print(f"SKIP {date_text}: already in history")
             continue
 
@@ -57,16 +65,18 @@ def main() -> None:
             if raw is None or raw.empty:
                 print(f"EMPTY {date_text}")
             else:
-                cleaned = preprocess_txo_data(raw)
-                result = calculate_term_structure(
-                    cleaned,
-                    as_of=trading_date,
-                    risk_free_rate=args.risk_free_rate,
-                )
-                history = replace_trading_day(history, date_text, result)
-                HISTORY_PATH.parent.mkdir(parents=True, exist_ok=True)
-                history.to_csv(HISTORY_PATH, index=False)
-                print(f"OK {date_text}: {len(result)} expirations")
+                if args.overwrite or date_text not in vix_dates:
+                    result = calculate_term_structure(
+                        preprocess_txo_data(raw), as_of=trading_date, risk_free_rate=args.risk_free_rate
+                    )
+                    history = replace_trading_day(history, date_text, result)
+                    HISTORY_PATH.parent.mkdir(parents=True, exist_ok=True)
+                    history.to_csv(HISTORY_PATH, index=False)
+                    print(f"OK {date_text}: {len(result)} VIX expirations")
+                if args.overwrite or date_text not in volume_dates:
+                    activity = calculate_expiration_volume(raw, trading_date)
+                    update_volume_history(activity, VOLUME_PATH)
+                    print(f"OK {date_text}: {len(activity)} volume expirations")
         except (TaifexDownloadError, ValueError, KeyError) as exc:
             print(f"ERROR {date_text}: {exc}")
 

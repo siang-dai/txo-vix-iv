@@ -19,6 +19,8 @@ For each expiration, the VIX calculation excludes a call or put quote when its f
 
 ## Latest outputs
 
+The observatory reads `data/option_volume_history.csv` for grouped call and put volume by expiration and the daily market-wide put/call ratios. Volume includes both sessions and expiry-day trades. Closing open interest uses regular-session observations for contracts still open after settlement. Each ratio is 100 × total puts / total calls for its measure. Historical totals are checked against the [TAIFEX Put/Call Ratio table](https://www.taifex.com.tw/cht/3/pcRatio). Daily updates and the historical backfill use the same aggregation.
+
 The repository publishes the VIX term-structure chart and compact data for the
 interactive TX- and MTX-based IV curves on the [TXO Observatory](https://siang-dai.github.io/txo.html).
 
