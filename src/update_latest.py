@@ -430,7 +430,7 @@ def main() -> None:
                 OUTPUT_DIR
                 / "latest_front_vix_vs_taiex.png",
 
-            window_days=30,
+            window_days=90,
         )
 
     except Exception as exc:

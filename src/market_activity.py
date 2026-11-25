@@ -254,7 +254,7 @@ def generate_front_vix_taiex_chart(
     )
 
     ax_index.set_ylabel("TAIEX Close")
-    ax_index.set_title("TAIEX vs Front-expiry VIX-style IV\nLast 30 Calendar Days")
+    ax_index.set_title(f"TAIEX vs Front-expiry VIX-style IV\nLast {window_days} Calendar Days")
     ax_index.grid(axis="y", alpha=0.2)
     ax_index.legend(loc="upper left", frameon=False)
 
