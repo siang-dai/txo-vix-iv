@@ -97,3 +97,25 @@ def test_expiry_day_volume_and_post_settlement_open_interest():
     assert result[["First_Strike_Bin", "Call_Bins_500", "Put_Bins_500"]].values.tolist() == [
         [30000, "0", "7"], [30000, "10 0 0 0", "0 0 0 16"],
     ]
+
+
+def test_snapshot_change_uses_prior_trading_close_and_keeps_earlier_dates(tmp_path, monkeypatch):
+    import json
+    from src import market_activity
+
+    closes = pd.Series([100, 105, 103, 100, 200, 199, 199], index=pd.to_datetime([
+        "2026-07-31", "2026-08-03", "2026-08-04", "2026-08-05", "2026-10-30", "2026-11-02", "2026-11-03"]))
+    def quotes(year, month, session):
+        values = closes[(closes.index.year == year) & (closes.index.month == month)]
+        return pd.DataFrame({key: values for key in ["TAIEX_Open", "TAIEX_High", "TAIEX_Low", "TAIEX_Close"]}).rename_axis("Date").reset_index()
+    monkeypatch.setattr(market_activity, "_get_taiex_month", quotes)
+    source, output = tmp_path / "history.csv", tmp_path / "market.png"
+    dates = ["2026-08-03", "2026-08-05", "2026-11-02", "2026-11-03"]
+    rows = pd.DataFrame({"Date": dates, "Expiration_Month": "202612", "Expiration_Date": "2026-12-16",
+                         "Days_to_Exp": 40, "VIX": 25})
+    for count in [2, 4]:
+        rows.iloc[:count].to_csv(source, index=False)
+        market_activity.generate_front_vix_taiex_chart(source, output, window_days=3)
+    result = json.loads(output.with_suffix(".json").read_text())
+    assert result["taiex_change_points"] == dict(zip(dates, [5, -3, -1, 0]))
+    assert [row["Date"] for row in result["data"]] == dates[-2:]

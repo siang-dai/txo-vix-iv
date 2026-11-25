@@ -86,10 +86,9 @@ def _get_taiex_history(
         for period in months
     ]
 
-    frames = [frame for frame in frames if not frame.empty]
-
-    if not frames:
-        return pd.DataFrame(columns=TAIEX_FIELDS.values())
+    for month, frame in zip(months, frames):
+        if frame.empty:
+            raise ValueError(f"Missing TAIEX monthly history for {month}")
 
     return (
         pd.concat(frames, ignore_index=True)
@@ -179,9 +178,7 @@ def generate_front_vix_taiex_chart(
     """
     Plot TAIEX close against the nearest-expiry VIX-style IV.
 
-    The function reads the existing VIX term-structure history, downloads
-    only the TWSE monthly index-history JSON needed for the latest window,
-    and writes one PNG chart for the website.
+    Fetch the chart window and any missing historical close-to-close changes.
 
     Returns the merged plotting DataFrame for diagnostics/tests.
     """
@@ -190,6 +187,12 @@ def generate_front_vix_taiex_chart(
 
     history = pd.read_csv(history_path)
     front = _get_front_vix(history, window_days=window_days)
+    json_path = output_path.with_suffix(".json")
+    previous = json.loads(json_path.read_text(encoding="utf-8")) if json_path.exists() else {}
+    changes = previous.get("taiex_change_points", {})
+    snapshot_dates = set(history["Date"])
+    missing = snapshot_dates.difference(changes)
+    start = min(front["Date"].min(), pd.Timestamp(min(missing))) if missing else front["Date"].min()
 
     session = requests.Session()
     session.headers.update(
@@ -204,10 +207,20 @@ def generate_front_vix_taiex_chart(
     )
 
     taiex = _get_taiex_history(
-        start_date=front["Date"].min(),
+        start_date=start,
         end_date=front["Date"].max(),
         session=session,
     )
+    # The first selected session can follow a weekend, holiday or month boundary.
+    if taiex["Date"].min() >= start:
+        month = start.to_period("M") - 1
+        prior = _get_taiex_month(month.year, month.month, session)
+        if prior.empty:
+            raise ValueError(f"Previous TAIEX close unavailable for {start.date()}")
+        taiex = pd.concat([prior.tail(1), taiex], ignore_index=True)
+    daily_change = taiex.set_index("Date")["TAIEX_Close"].diff().round(2).dropna()
+    changes.update({day: points for day, points in zip(daily_change.index.strftime("%Y-%m-%d"), daily_change)
+                    if day in snapshot_dates})
 
     data = (
         front.merge(taiex, on="Date", how="left")
@@ -284,8 +297,6 @@ def generate_front_vix_taiex_chart(
     # Small JSON payload for the interactive website chart
     # ------------------------------------------------------------
 
-    json_path = output_path.with_suffix(".json")
-
     interactive_data = plot_data[
         [
             "Date",
@@ -307,6 +318,7 @@ def generate_front_vix_taiex_chart(
         "as_of_date": interactive_data["Date"].iloc[-1],
         "window_days": window_days,
         "data": interactive_data.to_dict(orient="records"),
+        "taiex_change_points": dict(sorted(changes.items())),
     }
 
     json_path.write_text(
