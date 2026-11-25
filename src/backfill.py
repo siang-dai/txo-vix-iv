@@ -48,7 +48,8 @@ def main() -> None:
     history = load_history()
     vix_dates = set(history["Date"]) if not history.empty else set()
     volume = pd.read_csv(VOLUME_PATH) if VOLUME_PATH.exists() else pd.DataFrame()
-    fields = ["Call_Volume", "Put_Volume", "Call_OI", "Put_OI", "Expiration_Date"]
+    fields = ["Call_Volume", "Put_Volume", "Call_OI", "Put_OI", "Expiration_Date",
+              "First_Strike_Bin", "Call_Bins_500", "Put_Bins_500"]
     volume_dates = set()
     if set(fields).issubset(volume):
         complete = volume[fields].notna().all(axis=1).groupby(volume["Date"]).all()

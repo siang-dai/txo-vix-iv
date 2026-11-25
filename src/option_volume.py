@@ -6,7 +6,7 @@ import pandas as pd
 
 
 def calculate_expiration_volume(raw_options: pd.DataFrame, trade_date) -> pd.DataFrame:
-    """Aggregate all-session volume and post-settlement open interest by expiry and side."""
+    """Aggregate all-session strike volume and post-settlement open interest by expiry and side."""
     day = pd.Timestamp(trade_date).normalize()
     rows = raw_options.loc[raw_options["契約"].str.strip().eq("TXO")].copy()
     if rows.empty or not pd.to_datetime(rows["交易日期"]).eq(day).all():
@@ -29,13 +29,31 @@ def calculate_expiration_volume(raw_options: pd.DataFrame, trade_date) -> pd.Dat
     )
     if rows[["Volume", "OI"]].isna().any().any() or (rows[["Volume", "OI"]] < 0).any().any():
         raise ValueError("Missing or negative contract counts")
+    if not rows["Volume"].mod(1).eq(0).all():
+        raise ValueError("Volume must be a whole number of contracts")
+    strike = pd.to_numeric(rows["履約價"].astype(str).str.replace(",", "", regex=False))
+    if not strike.between(0, float("inf"), inclusive="neither").all():
+        raise ValueError("Invalid strike price")
+    rows["Strike_Bin"] = (strike // 500).astype("int64") * 500
 
     totals = rows.groupby(["Expiration_Month", "Expiration_Date", "Side"])[["Volume", "OI"]].sum()
     by_side = totals.unstack("Side", fill_value=0).reindex(
         columns=pd.MultiIndex.from_product([["Volume", "OI"], ["Call", "Put"]]), fill_value=0
     )
     by_side.columns = [f"{side}_{measure}" for measure, side in by_side.columns]
-    result = by_side.reset_index().sort_values(["Expiration_Date", "Expiration_Month"])
+    strike_volume = rows.groupby(["Expiration_Month", "Expiration_Date", "Strike_Bin", "Side"])["Volume"].sum()
+    sides = strike_volume.unstack("Side", fill_value=0).reindex(columns=["Call", "Put"], fill_value=0)
+    bins = []
+    for (expiry, expiry_date), group in sides.groupby(level=["Expiration_Month", "Expiration_Date"]):
+        counts = group.droplevel(["Expiration_Month", "Expiration_Date"])
+        first, last = counts.index.min(), counts.index.max()
+        counts = counts.reindex(range(first, last + 500, 500), fill_value=0).astype("int64")
+        bins.append({
+            "Expiration_Month": expiry, "Expiration_Date": expiry_date, "First_Strike_Bin": first,
+            "Call_Bins_500": " ".join(counts["Call"].astype(str)), "Put_Bins_500": " ".join(counts["Put"].astype(str)),
+        })
+    result = by_side.join(pd.DataFrame(bins).set_index(["Expiration_Month", "Expiration_Date"]))
+    result = result.reset_index().sort_values(["Expiration_Date", "Expiration_Month"])
     result["Expiration_Date"] = result["Expiration_Date"].dt.strftime("%Y-%m-%d")
     result.insert(0, "Date", day.strftime("%Y-%m-%d"))
     result.insert(2, "Volume", result["Call_Volume"] + result["Put_Volume"])

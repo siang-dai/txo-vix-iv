@@ -86,6 +86,7 @@ def test_expiry_day_volume_and_post_settlement_open_interest():
         "契約": ["TXO"] * 5, "交易日期": ["2026/08/19"] * 5,
         "到期月份(週別)": ["202608", "202609", "202609", "202609", "202609"],
         "契約到期日": ["20260819"] + ["20260916"] * 4,
+        "履約價": [30000, 30450, 30000, 31500, 31500],
         "買賣權": ["賣權", "買權", "買權", "賣權", "賣權"],
         "交易時段": ["一般", "一般", "盤後", "一般", "盤後"],
         "成交量": [7, 8, 2, 11, 5], "未沖銷契約數": ["99", "40", "-", "20", "-"],
@@ -93,3 +94,6 @@ def test_expiry_day_volume_and_post_settlement_open_interest():
     result = calculate_expiration_volume(rows, "2026-08-19")
     counts = ["Call_Volume", "Put_Volume", "Volume", "Call_OI", "Put_OI"]
     assert result[counts].values.tolist() == [[0, 7, 7, 0, 0], [10, 16, 26, 40, 20]]
+    assert result[["First_Strike_Bin", "Call_Bins_500", "Put_Bins_500"]].values.tolist() == [
+        [30000, "0", "7"], [30000, "10 0 0 0", "0 0 0 16"],
+    ]
